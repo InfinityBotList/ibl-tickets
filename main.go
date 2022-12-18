@@ -81,6 +81,11 @@ func main() {
 		panic(err)
 	}
 
+	if app.Team == nil {
+		fmt.Fprintln(os.Stderr, "Bot is not in a team, please add it to a team to use this bot.")
+		os.Exit(1)
+	}
+
 	owners = Owners{Owners: app.Team.Members}
 
 	fmt.Println("Bot owners:", owners.String())
