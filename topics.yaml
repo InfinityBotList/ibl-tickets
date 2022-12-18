@@ -5,6 +5,8 @@ gsupport:
   questions:
     - question: "How urgent is your issue?"
       placeholder: "Low, Medium or High"
+    - question: "Whats going on?"
+      placeholder: "Whats the issue?"
 reviewhelp:
   name: Bot Reviews
   description: "Questions regarding a review on your bot"

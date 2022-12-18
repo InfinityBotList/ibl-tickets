@@ -85,7 +85,7 @@ func main() {
 
 	fmt.Println("Bot owners:", owners.String())
 
-	discord.Identify.Intents = discordgo.IntentsAllWithoutPrivileged | discordgo.IntentsMessageContent
+	discord.Identify.Intents = discordgo.IntentsAllWithoutPrivileged | discordgo.IntentsMessageContent | discordgo.IntentsGuildMembers
 
 	discord.AddHandler(func(s *discordgo.Session, i *discordgo.Ready) {
 		fmt.Println("Bot is ready. Logged in as " + i.User.Username + "#" + i.User.Discriminator)
@@ -171,10 +171,24 @@ func main() {
 					return
 				}
 
-				modalqas := make([]discordgo.MessageComponent, len(topic.Questions))
+				modalqas := make([]discordgo.MessageComponent, 1+len(topic.Questions))
+
+				modalqas[0] = discordgo.ActionsRow{
+					Components: []discordgo.MessageComponent{
+						&discordgo.TextInput{
+							Label:       "Topic?",
+							Placeholder: "What is your issue? ",
+							MinLength:   1,
+							MaxLength:   1000,
+							CustomID:    "issue",
+							Required:    true,
+							Style:       discordgo.TextInputShort,
+						},
+					},
+				}
 
 				for i, question := range topic.Questions {
-					modalqas[i] = discordgo.ActionsRow{
+					modalqas[i+1] = discordgo.ActionsRow{
 						Components: []discordgo.MessageComponent{
 							&discordgo.TextInput{
 								Label:       question.Question,
@@ -192,7 +206,7 @@ func main() {
 				err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseModal,
 					Data: &discordgo.InteractionResponseData{
-						CustomID:   "tikmodal",
+						CustomID:   "tikmodal:" + topicId,
 						Title:      topic.Name,
 						Components: modalqas,
 					},
@@ -215,12 +229,114 @@ func main() {
 				}
 			}
 		case discordgo.InteractionModalSubmit:
-			modalData := i.ModalSubmitData()
+			data := i.ModalSubmitData()
 
 			// Create the thread
 			/*thread, err := s.ThreadStartComplex(os.Getenv("TICKET_THREAD_CHANNEL=1053875909024817182"), &discordgo.ThreadStart{
 
 			}) */
+
+			switch strings.Split(data.CustomID, ":")[0] {
+			case "tikmodal":
+				topicId := strings.Split(data.CustomID, ":")[1]
+
+				topic, ok := topics[topicId]
+
+				if !ok {
+					fmt.Println("Invalid topic ID:", topicId)
+					return
+				}
+
+				fmt.Println("TicketModalSubmit:", data)
+
+				// Send a message to the user
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Creating ticket.\n\nPlease wait...",
+						Flags:   discordgo.MessageFlagsEphemeral,
+					},
+				})
+
+				var answers = map[string]string{}
+				var issue string
+
+				for _, value := range data.Components {
+					// Get the question
+					input := value.(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput)
+
+					if input.CustomID == "issue" {
+						issue = input.Value
+						continue
+					}
+
+					questionNum, err := strconv.Atoi(input.CustomID)
+
+					if err != nil {
+						fmt.Println("Error:", err)
+						return
+					}
+
+					answers[topic.Questions[questionNum].Question] = input.Value
+				}
+
+				fmt.Println("Answers:", answers)
+
+				thread, err := s.ThreadStartComplex(os.Getenv("TICKET_THREAD_CHANNEL"), &discordgo.ThreadStart{
+					Name: issue,
+					Type: discordgo.ChannelTypeGuildPrivateThread,
+				})
+
+				if err != nil {
+					fmt.Println("Error:", err)
+					return
+				}
+
+				// Send the answers to the thread
+				var answersStr string
+
+				for question, answer := range answers {
+					answersStr += "**" + question + "**\n" + answer + "\n\n"
+				}
+
+				answersStr += "\n\n**Issue:**\n" + issue
+
+				m, err := s.ChannelMessageSendComplex(thread.ID, &discordgo.MessageSend{
+					Embeds: []*discordgo.MessageEmbed{
+						{
+							Title:       "Ticket created by " + i.Member.User.Username + "#" + i.Member.User.Discriminator,
+							Description: answersStr,
+						},
+					},
+				})
+
+				if err != nil {
+					fmt.Println("Error:", err)
+					return
+				}
+
+				// Pin the message
+				err = s.ChannelMessagePin(thread.ID, m.ID)
+
+				if err != nil {
+					fmt.Println("Error:", err)
+					return
+				}
+
+				// Add the user to the thread
+				err = s.ThreadMemberAdd(thread.ID, i.Member.User.ID)
+
+				if err != nil {
+					fmt.Println("Error:", err)
+					return
+				}
+
+				// Send a message to the user
+				newmsg := "Your ticket has been created! You can view it here: <#" + thread.ID + ">"
+				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Content: &newmsg,
+				})
+			}
 		}
 	})
 
