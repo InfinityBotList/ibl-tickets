@@ -1,0 +1,16 @@
+gsupport:
+  name: General Support
+  description: "General support regarding Infinity Bot List"
+  emoji: 🤖
+  questions:
+    - question: "How urgent is your issue?"
+      placeholder: "Low, Medium or High"
+reviewhelp:
+  name: Bot Reviews
+  description: "Questions regarding a review on your bot"
+  emoji: 📝
+  questions:
+    - question: "What is the bot ID in question?"
+      placeholder: "1234567890"
+    - question: "Who reviewed your bot?"
+      placeholder: "Bob"
