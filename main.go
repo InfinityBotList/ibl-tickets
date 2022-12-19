@@ -15,6 +15,7 @@ import (
 	"github.com/infinitybotlist/crypto"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
+	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
 )
 
@@ -194,6 +195,114 @@ func main() {
 					fmt.Println("Error:", err)
 				}
 			}
+
+			if m.Content == "cbt" && m.ChannelID == os.Getenv("TICKET_THREAD_CHANNEL") {
+				s.ChannelMessageDelete(m.ChannelID, m.ID)
+
+				// Get all threads, regardless of archived or not
+				var activeThreads []string
+				var archivedThreads []string
+				var privateArchivedThreads []string
+
+				// Active threads
+				threads, err := s.GuildThreadsActive(m.GuildID)
+
+				if err != nil {
+					fmt.Println("Error:", err)
+					s.ChannelMessageSend(m.ChannelID, "Error: "+err.Error())
+					return
+				}
+
+				for _, thread := range threads.Threads {
+					if thread.ParentID == m.ChannelID {
+						activeThreads = append(activeThreads, thread.ID)
+					}
+				}
+
+				// Archived threads
+				for {
+					threads, err := s.ThreadsArchived(m.ChannelID, nil, 0)
+
+					if err != nil {
+						fmt.Println("Error:", err)
+						s.ChannelMessageSend(m.ChannelID, "Error: "+err.Error())
+						return
+					}
+
+					for _, thread := range threads.Threads {
+						archivedThreads = append(archivedThreads, thread.ID)
+					}
+
+					if !threads.HasMore {
+						break
+					}
+				}
+
+				// Private archived threads
+				for {
+					threads, err := s.ThreadsPrivateArchived(m.ChannelID, nil, 0)
+
+					if err != nil {
+						fmt.Println("Error:", err)
+						s.ChannelMessageSend(m.ChannelID, "Error: "+err.Error())
+						return
+					}
+
+					for _, thread := range threads.Threads {
+						privateArchivedThreads = append(privateArchivedThreads, thread.ID)
+					}
+
+					if !threads.HasMore {
+						break
+					}
+				}
+
+				fmt.Println("Active threads:", activeThreads)
+				fmt.Println("Archived threads:", archivedThreads)
+				fmt.Println("Private archived threads:", privateArchivedThreads)
+
+				// Combine all threads
+				allThreads := append(activeThreads, archivedThreads...)
+				allThreads = append(allThreads, privateArchivedThreads...)
+
+				// Get all tickets
+				rows, err := pool.Query(ctx, "SELECT id, channel_id FROM tickets")
+
+				if err != nil {
+					fmt.Println("Error:", err)
+					s.ChannelMessageSend(m.ChannelID, "Error: "+err.Error())
+					return
+				}
+
+				defer rows.Close()
+
+				for rows.Next() {
+					var ticketId string
+					var channelId string
+
+					err = rows.Scan(&ticketId, &channelId)
+
+					if err != nil {
+						fmt.Println("Error:", err)
+						s.ChannelMessageSend(m.ChannelID, "Error: "+err.Error())
+						return
+					}
+
+					// Check if ticket exists in threads
+					if !slices.Contains(allThreads, channelId) {
+						// Close ticket
+						_, err = pool.Exec(ctx, "UPDATE tickets SET open = false WHERE id = $1", ticketId)
+
+						if err != nil {
+							fmt.Println("Error:", err)
+							s.ChannelMessageSend(m.ChannelID, "Error: "+err.Error())
+							return
+						}
+
+						s.ChannelMessageSend(m.ChannelID, "Closed ticket "+ticketId)
+					}
+				}
+			}
 		}
 	})
 
@@ -371,6 +480,18 @@ func main() {
 						Content: "Closing ticket " + tikId + "... Please wait...",
 					},
 				})
+
+				// Update the database setting open to false
+				_, err = pool.Exec(ctx, "UPDATE tickets SET open = false WHERE id = $1", tikId)
+
+				if err != nil {
+					fmt.Fprintln(os.Stderr, "Error:", err, ", user ID:", i.Member.User.ID)
+					var content = "An error occurred while closing this ticket. Please contact our support team about this!"
+					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+						Content: &content,
+					})
+					return
+				}
 
 				// Set thread to read-only
 				var locked = true
