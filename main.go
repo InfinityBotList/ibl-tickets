@@ -458,8 +458,9 @@ func main() {
 
 				// Get the open tickets channel ID
 				var ticketsChannelId string
+				var open bool
 
-				err = pool.QueryRow(ctx, "SELECT channel_id FROM tickets WHERE id = $1", tikId).Scan(&ticketsChannelId)
+				err = pool.QueryRow(ctx, "SELECT channel_id, open FROM tickets WHERE id = $1", tikId).Scan(&ticketsChannelId, &open)
 
 				if err != nil {
 					fmt.Fprintln(os.Stderr, "Error:", err, ", user ID:", i.Member.User.ID)
@@ -467,6 +468,17 @@ func main() {
 						Type: discordgo.InteractionResponseChannelMessageWithSource,
 						Data: &discordgo.InteractionResponseData{
 							Content: "An error occurred while finding this ticket. Please contact our support team about this!",
+							Flags:   discordgo.MessageFlagsEphemeral,
+						},
+					})
+					return
+				}
+
+				if !open {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "This ticket is already closed?!",
 							Flags:   discordgo.MessageFlagsEphemeral,
 						},
 					})
