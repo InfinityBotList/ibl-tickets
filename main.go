@@ -668,6 +668,7 @@ func main() {
 				}
 
 				m, err := s.ChannelMessageSendComplex(thread.ID, &discordgo.MessageSend{
+					Content: i.Member.User.Mention() + " <@&" + os.Getenv("SUPPORT_ROLE") + ">",
 					Embeds: []*discordgo.MessageEmbed{
 						{
 							Title:       "Ticket created by " + i.Member.User.Username + "#" + i.Member.User.Discriminator,
@@ -716,20 +717,6 @@ func main() {
 
 				// Pin the message
 				err = s.ChannelMessagePin(thread.ID, m.ID)
-
-				if err != nil {
-					fmt.Println("Error:", err)
-					// Send a message to the user
-					newmsg := "Your ticket couldn't be created properly! Please try again later."
-					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
-						Content: &newmsg,
-					})
-
-					return
-				}
-
-				// Add the user to the thread
-				err = s.ThreadMemberAdd(thread.ID, i.Member.User.ID)
 
 				if err != nil {
 					fmt.Println("Error:", err)
