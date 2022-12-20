@@ -65,6 +65,7 @@ type Topic struct {
 	Description string     `yaml:"description"`
 	Emoji       string     `yaml:"emoji"`
 	Questions   []Question `yaml:"questions"`
+	PingExtra   []string   `yaml:"pingExtra"`
 }
 
 type Question struct {
@@ -209,7 +210,12 @@ func main() {
 
 				if err != nil {
 					fmt.Println("Error:", err)
-					s.ChannelMessageSend(m.ChannelID, "Error: "+err.Error())
+					s.ChannelMessageSendComplex(m.ChannelID, &discordgo.MessageSend{
+						Content: "Error: " + err.Error(),
+						AllowedMentions: &discordgo.MessageAllowedMentions{
+							Parse: []discordgo.AllowedMentionType{},
+						},
+					})
 					return
 				}
 
@@ -225,7 +231,12 @@ func main() {
 
 					if err != nil {
 						fmt.Println("Error:", err)
-						s.ChannelMessageSend(m.ChannelID, "Error: "+err.Error())
+						s.ChannelMessageSendComplex(m.ChannelID, &discordgo.MessageSend{
+							Content: "Error: " + err.Error(),
+							AllowedMentions: &discordgo.MessageAllowedMentions{
+								Parse: []discordgo.AllowedMentionType{},
+							},
+						})
 						return
 					}
 
@@ -244,7 +255,12 @@ func main() {
 
 					if err != nil {
 						fmt.Println("Error:", err)
-						s.ChannelMessageSend(m.ChannelID, "Error: "+err.Error())
+						s.ChannelMessageSendComplex(m.ChannelID, &discordgo.MessageSend{
+							Content: "Error: " + err.Error(),
+							AllowedMentions: &discordgo.MessageAllowedMentions{
+								Parse: []discordgo.AllowedMentionType{},
+							},
+						})
 						return
 					}
 
@@ -270,7 +286,12 @@ func main() {
 
 				if err != nil {
 					fmt.Println("Error:", err)
-					s.ChannelMessageSend(m.ChannelID, "Error: "+err.Error())
+					s.ChannelMessageSendComplex(m.ChannelID, &discordgo.MessageSend{
+						Content: "Error: " + err.Error(),
+						AllowedMentions: &discordgo.MessageAllowedMentions{
+							Parse: []discordgo.AllowedMentionType{},
+						},
+					})
 					return
 				}
 
@@ -284,7 +305,12 @@ func main() {
 
 					if err != nil {
 						fmt.Println("Error:", err)
-						s.ChannelMessageSend(m.ChannelID, "Error: "+err.Error())
+						s.ChannelMessageSendComplex(m.ChannelID, &discordgo.MessageSend{
+							Content: "Error: " + err.Error(),
+							AllowedMentions: &discordgo.MessageAllowedMentions{
+								Parse: []discordgo.AllowedMentionType{},
+							},
+						})
 						return
 					}
 
@@ -295,11 +321,21 @@ func main() {
 
 						if err != nil {
 							fmt.Println("Error:", err)
-							s.ChannelMessageSend(m.ChannelID, "Error: "+err.Error())
+							s.ChannelMessageSendComplex(m.ChannelID, &discordgo.MessageSend{
+								Content: "Error: " + err.Error(),
+								AllowedMentions: &discordgo.MessageAllowedMentions{
+									Parse: []discordgo.AllowedMentionType{},
+								},
+							})
 							return
 						}
 
-						s.ChannelMessageSend(m.ChannelID, "Closed ticket "+ticketId)
+						s.ChannelMessageSendComplex(m.ChannelID, &discordgo.MessageSend{
+							Content: "Closed ticket " + ticketId,
+							AllowedMentions: &discordgo.MessageAllowedMentions{
+								Parse: []discordgo.AllowedMentionType{},
+							},
+						})
 					}
 				}
 			}
@@ -360,6 +396,9 @@ func main() {
 						Data: &discordgo.InteractionResponseData{
 							Content: "You are on cooldown. Please wait " + cooldown.String() + " before creating another ticket.",
 							Flags:   discordgo.MessageFlagsEphemeral,
+							AllowedMentions: &discordgo.MessageAllowedMentions{
+								Parse: []discordgo.AllowedMentionType{},
+							},
 						},
 					})
 				}
@@ -375,6 +414,9 @@ func main() {
 						Data: &discordgo.InteractionResponseData{
 							Content: "An error occurred while creating your ticket. Please try again later.",
 							Flags:   discordgo.MessageFlagsEphemeral,
+							AllowedMentions: &discordgo.MessageAllowedMentions{
+								Parse: []discordgo.AllowedMentionType{},
+							},
 						},
 					})
 					return
@@ -393,6 +435,9 @@ func main() {
 							Data: &discordgo.InteractionResponseData{
 								Content: "An error occurred while finding your last open ticket. Please contact our support team about this!",
 								Flags:   discordgo.MessageFlagsEphemeral,
+								AllowedMentions: &discordgo.MessageAllowedMentions{
+									Parse: []discordgo.AllowedMentionType{},
+								},
 							},
 						})
 						return
@@ -404,6 +449,9 @@ func main() {
 						Data: &discordgo.InteractionResponseData{
 							Content: "You already have an open ticket. Please use the following link to view it: <#" + ticketsChannelId + ">",
 							Flags:   discordgo.MessageFlagsEphemeral,
+							AllowedMentions: &discordgo.MessageAllowedMentions{
+								Parse: []discordgo.AllowedMentionType{},
+							},
 						},
 					})
 					return
@@ -469,6 +517,9 @@ func main() {
 						Data: &discordgo.InteractionResponseData{
 							Content: "An error occurred while finding this ticket. Please contact our support team about this!",
 							Flags:   discordgo.MessageFlagsEphemeral,
+							AllowedMentions: &discordgo.MessageAllowedMentions{
+								Parse: []discordgo.AllowedMentionType{},
+							},
 						},
 					})
 					return
@@ -480,6 +531,9 @@ func main() {
 						Data: &discordgo.InteractionResponseData{
 							Content: "This ticket is already closed?!",
 							Flags:   discordgo.MessageFlagsEphemeral,
+							AllowedMentions: &discordgo.MessageAllowedMentions{
+								Parse: []discordgo.AllowedMentionType{},
+							},
 						},
 					})
 					return
@@ -490,17 +544,23 @@ func main() {
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
 						Content: "Closing ticket " + tikId + "... Please wait...",
+						AllowedMentions: &discordgo.MessageAllowedMentions{
+							Parse: []discordgo.AllowedMentionType{},
+						},
 					},
 				})
 
 				// Update the database setting open to false
-				_, err = pool.Exec(ctx, "UPDATE tickets SET open = false WHERE id = $1", tikId)
+				_, err = pool.Exec(ctx, "UPDATE tickets SET open = false, close_user_id = $2 WHERE id = $1", tikId, i.Member.User.ID)
 
 				if err != nil {
 					fmt.Fprintln(os.Stderr, "Error:", err, ", user ID:", i.Member.User.ID)
 					var content = "An error occurred while closing this ticket. Please contact our support team about this!"
 					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 						Content: &content,
+						AllowedMentions: &discordgo.MessageAllowedMentions{
+							Parse: []discordgo.AllowedMentionType{},
+						},
 					})
 					return
 				}
@@ -519,6 +579,9 @@ func main() {
 					newmsg := "Your ticket couldn't be closed properly! Please try again later."
 					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 						Content: &newmsg,
+						AllowedMentions: &discordgo.MessageAllowedMentions{
+							Parse: []discordgo.AllowedMentionType{},
+						},
 					})
 					return
 				}
@@ -536,6 +599,9 @@ func main() {
 						newmsg := "Your ticket couldn't be closed properly (couldn't find messages)! Please try again later.\nlastMessageId=" + lastMessageId
 						s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 							Content: &newmsg,
+							AllowedMentions: &discordgo.MessageAllowedMentions{
+								Parse: []discordgo.AllowedMentionType{},
+							},
 						})
 						return
 					}
@@ -565,6 +631,9 @@ func main() {
 					newmsg := "Your ticket couldn't be closed properly (couldn't update database)! Please try again later."
 					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 						Content: &newmsg,
+						AllowedMentions: &discordgo.MessageAllowedMentions{
+							Parse: []discordgo.AllowedMentionType{},
+						},
 					})
 					return
 				}
@@ -574,6 +643,9 @@ func main() {
 
 				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 					Content: &newmsg,
+					AllowedMentions: &discordgo.MessageAllowedMentions{
+						Parse: []discordgo.AllowedMentionType{},
+					},
 				})
 			}
 		case discordgo.InteractionModalSubmit:
@@ -596,6 +668,9 @@ func main() {
 					newmsg := "Your tickets topic is invalid! Please try again later."
 					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 						Content: &newmsg,
+						AllowedMentions: &discordgo.MessageAllowedMentions{
+							Parse: []discordgo.AllowedMentionType{},
+						},
 					})
 					return
 				}
@@ -608,6 +683,9 @@ func main() {
 					Data: &discordgo.InteractionResponseData{
 						Content: "Creating ticket.\n\nPlease wait...",
 						Flags:   discordgo.MessageFlagsEphemeral,
+						AllowedMentions: &discordgo.MessageAllowedMentions{
+							Parse: []discordgo.AllowedMentionType{},
+						},
 					},
 				})
 
@@ -631,6 +709,9 @@ func main() {
 						newmsg := "Your ticket is invalid! Please try again later."
 						s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 							Content: &newmsg,
+							AllowedMentions: &discordgo.MessageAllowedMentions{
+								Parse: []discordgo.AllowedMentionType{},
+							},
 						})
 
 						return
@@ -652,6 +733,9 @@ func main() {
 					newmsg := "Your ticket couldn't be created properly! Please try again later."
 					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 						Content: &newmsg,
+						AllowedMentions: &discordgo.MessageAllowedMentions{
+							Parse: []discordgo.AllowedMentionType{},
+						},
 					})
 
 					return
@@ -668,6 +752,9 @@ func main() {
 					newmsg := "Your ticket couldn't be created properly! Please try again later."
 					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 						Content: &newmsg,
+						AllowedMentions: &discordgo.MessageAllowedMentions{
+							Parse: []discordgo.AllowedMentionType{},
+						},
 					})
 					return
 				}
@@ -679,8 +766,18 @@ func main() {
 					answersStr += "**" + question + "**\n" + answer + "\n\n"
 				}
 
+				rolesToPing := []string{os.Getenv("SUPPORT_ROLE")}
+
+				rolesToPing = append(rolesToPing, topic.PingExtra...)
+
+				var rolesStr string
+
+				for _, role := range rolesToPing {
+					rolesStr += "<@&" + role + "> "
+				}
+
 				m, err := s.ChannelMessageSendComplex(thread.ID, &discordgo.MessageSend{
-					Content: i.Member.User.Mention() + " <@&" + os.Getenv("SUPPORT_ROLE") + ">",
+					Content: i.Member.User.Mention() + " " + rolesStr,
 					Embeds: []*discordgo.MessageEmbed{
 						{
 							Title:       "Ticket created by " + i.Member.User.Username + "#" + i.Member.User.Discriminator,
@@ -713,6 +810,9 @@ func main() {
 								},
 							},
 						},
+					},
+					AllowedMentions: &discordgo.MessageAllowedMentions{
+						Roles: rolesToPing,
 					},
 				})
 

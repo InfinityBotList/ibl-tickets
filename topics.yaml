@@ -3,10 +3,8 @@ gsupport:
   description: "General support regarding Infinity Bot List"
   emoji: 🤖
   questions:
-    - question: "How urgent is your issue?"
-      placeholder: "Low, Medium or High"
-    - question: "Whats going on?"
-      placeholder: "Whats the issue?"
+    - question: "What steps have you taken to resolve the problem"
+      placeholder: "I have..."
 reviewhelp:
   name: Bot Reviews
   description: "Questions regarding a review on your bot"
@@ -16,3 +14,12 @@ reviewhelp:
       placeholder: "1234567890"
     - question: "Who reviewed your bot?"
       placeholder: "Bob"
+uhelp:
+  name: Urgent Help
+  description: "Urgent help regarding Infinity Bot List"
+  emoji: 🚨
+  questions:
+    - question: "Are you sure this is urgent?"
+      placeholder: "Yes, there is a raid going on/hacked account"
+  pingExtra:
+    - "1048308341060931735"
