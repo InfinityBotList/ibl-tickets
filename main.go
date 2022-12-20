@@ -757,6 +757,9 @@ func main() {
 				if err != nil {
 					fmt.Println("DM Channel Create Error [ignoring as not critical]:", err)
 				} else {
+					// Reset file reader
+					file.Reader = bytes.NewReader([]byte(transcript))
+
 					_, err = s.ChannelMessageSendComplex(dm.ID, &discordgo.MessageSend{
 						Embeds: []*discordgo.MessageEmbed{embed},
 						Files:  []*discordgo.File{file},
