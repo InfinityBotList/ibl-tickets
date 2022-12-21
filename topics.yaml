@@ -3,7 +3,7 @@ gsupport:
   description: "General support regarding Infinity Bot List"
   emoji: 🤖
   questions:
-    - question: "What steps have you taken to resolve the problem"
+    - question: "Anything else we need to know?"
       placeholder: "I have..."
 reviewhelp:
   name: Bot Reviews

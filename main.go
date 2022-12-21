@@ -463,7 +463,7 @@ func main() {
 					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 						Type: discordgo.InteractionResponseChannelMessageWithSource,
 						Data: &discordgo.InteractionResponseData{
-							Content: "You already have an open ticket. Please use the following link to view it: <#" + ticketsChannelId + ">",
+							Content: "You already have an open ticket. Please use the following link to view it: <#" + ticketsChannelId + "> (https://discord.com/channels/" + i.Interaction.GuildID + "/" + ticketsChannelId + ")",
 							Flags:   discordgo.MessageFlagsEphemeral,
 							AllowedMentions: &discordgo.MessageAllowedMentions{
 								Parse: []discordgo.AllowedMentionType{},
@@ -981,7 +981,7 @@ func main() {
 				}
 
 				// Send a message to the user
-				newmsg := "Your ticket has been created! You can view it here: <#" + thread.ID + ">"
+				newmsg := "Your ticket has been created! You can view it here: (https://discord.com/channels/" + i.Interaction.GuildID + "/" + thread.ID + ")"
 				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 					Content: &newmsg,
 				})
