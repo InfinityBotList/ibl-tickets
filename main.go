@@ -76,10 +76,11 @@ type Question struct {
 }
 
 type Message struct {
-	ID       string                    `json:"id"`
-	Content  string                    `json:"content"`
-	Embeds   []*discordgo.MessageEmbed `json:"embeds"`
-	AuthorID string                    `json:"author_id"`
+	ID          string                         `json:"id"`
+	Content     string                         `json:"content"`
+	Embeds      []*discordgo.MessageEmbed      `json:"embeds"`
+	AuthorID    string                         `json:"author_id"`
+	Attachments []*discordgo.MessageAttachment `json:"attachments"`
 }
 
 type FileTranscriptData struct {
@@ -641,10 +642,11 @@ func main() {
 
 					for _, msg := range msgs {
 						messages = append(messages, Message{
-							ID:       msg.ID,
-							AuthorID: msg.Author.ID,
-							Content:  msg.Content,
-							Embeds:   msg.Embeds,
+							ID:          msg.ID,
+							AuthorID:    msg.Author.ID,
+							Content:     msg.Content,
+							Embeds:      msg.Embeds,
+							Attachments: msg.Attachments,
 						})
 					}
 
