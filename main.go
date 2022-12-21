@@ -671,7 +671,7 @@ func main() {
 					return
 				}
 
-				ticketUrl := os.Getenv("FRONTEND_URL") + "/tickets/" + tikId
+				ticketUrl := os.Getenv("FRONTEND_URL") + "/ticket/" + tikId
 
 				// Send transcript to ticket thread channel and to user
 				embed := &discordgo.MessageEmbed{
