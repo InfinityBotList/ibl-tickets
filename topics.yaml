@@ -19,7 +19,7 @@ uhelp:
   description: "Urgent help regarding Infinity Bot List"
   emoji: 🚨
   questions:
-    - question: "Are you sure this is urgent?"
-      placeholder: "Yes, there is a raid going on/hacked account"
+    - question: "Why do you feel this is urgent?"
+      placeholder: "There is a raid going on/hacked account..."
   pingExtra:
     - "1048308341060931735"
