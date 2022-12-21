@@ -14,7 +14,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/go-redis/redis/v8"
-	"github.com/infinitybotlist/crypto"
+	"github.com/infinitybotlist/eureka/crypto"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"golang.org/x/exp/slices"
