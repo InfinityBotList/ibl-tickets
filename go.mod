@@ -3,7 +3,7 @@ module ibl-tickets
 go 1.19
 
 require (
-	github.com/bwmarrin/discordgo v0.26.1
+	github.com/infinitybotlist/discordgo v0.0.0-20221228161841-b7cf267b4a41
 	github.com/joho/godotenv v1.4.0
 	gopkg.in/yaml.v3 v3.0.1
 )
