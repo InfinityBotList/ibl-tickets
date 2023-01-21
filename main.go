@@ -7,8 +7,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"net/http"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -133,16 +131,6 @@ func main() {
 
 	if err != nil {
 		panic(err)
-	}
-
-	// Setup HTTP proxy
-	discord.Client = &http.Client{
-		Transport: &http.Transport{
-			Proxy: http.ProxyURL(&url.URL{
-				Scheme: "http",
-				Host:   "infinity",
-			}),
-		},
 	}
 
 	// Get bot owners using the Discord API, @me is used here to get the bot's application
