@@ -3,7 +3,6 @@ module ibl-tickets
 go 1.19
 
 require (
-	github.com/infinitybotlist/discordgo v0.0.0-20221228161841-b7cf267b4a41
 	github.com/joho/godotenv v1.4.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -22,6 +21,7 @@ require (
 )
 
 require (
+	github.com/bwmarrin/discordgo v0.27.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/infinitybotlist/eureka v0.0.0-20221203142608-7547b65265c4

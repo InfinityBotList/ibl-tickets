@@ -7,13 +7,14 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/bwmarrin/discordgo"
 	"github.com/go-redis/redis/v8"
-	"github.com/infinitybotlist/discordgo"
 	"github.com/infinitybotlist/eureka/crypto"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
@@ -132,6 +133,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	discord.Client.Transport = NewHostRewriter("localhost:3219", http.DefaultTransport)
 
 	// Get bot owners using the Discord API, @me is used here to get the bot's application
 	app, err := discord.Application("@me")
