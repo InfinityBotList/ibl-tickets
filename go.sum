@@ -18,6 +18,8 @@ github.com/infinitybotlist/discordgo v0.0.0-20221228161841-b7cf267b4a41 h1:eow+K
 github.com/infinitybotlist/discordgo v0.0.0-20221228161841-b7cf267b4a41/go.mod h1:iX0Dae+01I/zdLj2/HI7iXhDus0UALv2jtl1L/eJ66c=
 github.com/infinitybotlist/eureka v0.0.0-20221203142608-7547b65265c4 h1:m32Eb0mhLEeu4D5PnnkCaMZY2i5dBSyqdDcvRaLxiQs=
 github.com/infinitybotlist/eureka v0.0.0-20221203142608-7547b65265c4/go.mod h1:tOzJAtbgIM29vIinvJ7DbnXjS8q5b7AMgMXJGXjI0bU=
+github.com/infinitybotlist/eureka v0.0.0-20230123040835-f7786a0aa2ee h1:66A1ezFgfqkaZjMkEAsO/KqJ5NOmHBIRA7BIUYuo/sg=
+github.com/infinitybotlist/eureka v0.0.0-20230123040835-f7786a0aa2ee/go.mod h1:tOzJAtbgIM29vIinvJ7DbnXjS8q5b7AMgMXJGXjI0bU=
 github.com/jackc/pgpassfile v1.0.0 h1:/6Hmqy13Ss2zCq62VdNG8tM1wchn8zjSGOBJ6icpsIM=
 github.com/jackc/pgpassfile v1.0.0/go.mod h1:CEx0iS5ambNFdcRtxPj5JhEz+xB6uRky5eyVu/W2HEg=
 github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b h1:C8S2+VttkHFdOOCXJe+YGfa4vHYwlt4Zx+IVXQ97jYg=

@@ -16,6 +16,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/go-redis/redis/v8"
 	"github.com/infinitybotlist/eureka/crypto"
+	"github.com/infinitybotlist/eureka/proxy"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"golang.org/x/exp/slices"
@@ -134,7 +135,9 @@ func main() {
 		panic(err)
 	}
 
-	discord.Client.Transport = NewHostRewriter("localhost:3219", http.DefaultTransport)
+	discord.Client.Transport = proxy.NewHostRewriter("localhost:3219", http.DefaultTransport, func(s string) {
+		fmt.Println("[PROXY]", s)
+	})
 
 	// Get bot owners using the Discord API, @me is used here to get the bot's application
 	app, err := discord.Application("@me")
