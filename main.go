@@ -778,18 +778,6 @@ func main() {
 					}
 				}
 
-				if err != nil {
-					fmt.Println("Error:", err)
-					newmsg := "Your ticket couldn't be closed properly (couldn't send transcript)! Please try again later."
-					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
-						Content: &newmsg,
-						AllowedMentions: &discordgo.MessageAllowedMentions{
-							Parse: []discordgo.AllowedMentionType{},
-						},
-					})
-					return
-				}
-
 				newmsg := "Your ticket has been closed and can be viewed at: " + ticketUrl
 				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 					Content: &newmsg,
@@ -968,7 +956,21 @@ func main() {
 					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 						Content: &newmsg,
 					})
+					pool.Exec(ctx, "DELETE FROM tickets WHERE id = $1", tikId)
+					return
+				}
 
+				err = s.ThreadMemberAdd(thread.ID, i.Member.User.ID)
+
+				if err != nil {
+					fmt.Println("ErrorTadd:", err)
+					// Send a message to the user
+					newmsg := "You couldn't be added to the ticket! Please try again later."
+					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+						Content: &newmsg,
+					})
+					pool.Exec(ctx, "DELETE FROM tickets WHERE id = $1", tikId)
+					s.ChannelDelete(thread.ID)
 					return
 				}
 
@@ -978,7 +980,7 @@ func main() {
 				if err != nil {
 					fmt.Println("Error:", err)
 					// Send a message to the user
-					newmsg := "Your ticket couldn't be created properly! Please try again later."
+					newmsg := "Your ticket couldn't be pinned properly but it appears to have been created! You can view it here: (https://discord.com/channels/" + i.Interaction.GuildID + "/" + thread.ID + ")"
 					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 						Content: &newmsg,
 					})
