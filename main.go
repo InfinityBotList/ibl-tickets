@@ -662,7 +662,7 @@ func main() {
 					return
 				}
 
-				err = iblf.WriteSection(bytes.NewBuffer(mdb), "metadata")
+				err = iblf.WriteSection(bytes.NewBuffer(mdb), "meta")
 
 				if err != nil {
 					logger.Error("Error creating transcript", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
