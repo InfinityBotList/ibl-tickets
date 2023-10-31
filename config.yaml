@@ -1,0 +1,39 @@
+topics:
+  gsupport:
+    name: General Support
+    description: "General support regarding Infinity Bot List"
+    emoji: 🤖
+    questions:
+      - question: "Anything else we need to know?"
+        placeholder: "I have..."
+    ping:
+      - "805761849601294336"
+  reviewhelp:
+    name: Bot Reviews
+    description: "Questions regarding a review on your bot"
+    emoji: 📝
+    questions:
+      - question: "What is the bot ID in question?"
+        placeholder: "1234567890"
+      - question: "Who reviewed your bot?"
+        placeholder: "Bob"
+    ping:
+      - "805761849601294336"
+  uhelp:
+    name: Urgent Help
+    description: "Urgent help regarding Infinity Bot List"
+    emoji: 🚨
+    questions:
+      - question: "Why do you feel this is urgent?"
+        placeholder: "There is a raid going on/hacked account..."
+    ping:
+      - "805761849601294336"
+      - "911918122359988244"
+database:
+  postgres: postgresql:///infinity
+  redis: redis://localhost:6379
+  file_storage_path: /silverpelt/cdn/ibl/ticket-blobs/tickets
+  exposed_path: https://cdn.infinitybots.gg/ibl/ticket-blobs/tickets
+channels:
+  thread_channel: 816156732929081366
+  log_channel: 815511720121335838
