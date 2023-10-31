@@ -299,13 +299,13 @@ func main() {
 				}
 
 				topicId := data.Values[0]
-				fmt.Println("TicketCreate:", topicId)
+				logger.Info("Creating ticket", zap.String("topicId", topicId), zap.String("userId", i.Member.User.ID))
 
 				// Create new ticket under ticket channel via private threads
 				topic, ok := config.Topics[topicId]
 
 				if !ok {
-					fmt.Println("Invalid topic ID:", topicId)
+					logger.Error("Invalid topic ID", zap.String("topicId", topicId), zap.String("userId", i.Member.User.ID))
 					return
 				}
 
@@ -319,12 +319,12 @@ func main() {
 					err = rediscli.Set(ctx, cooldownKey, "0", 10*time.Second).Err()
 
 					if err != nil {
-						fmt.Println("Error:", err)
+						logger.Error("Error setting cooldown", zap.Error(err), zap.String("userId", i.Member.User.ID))
 						return
 					}
 				} else {
 					// Cooldown exists
-					fmt.Println("Cooldown active for user:", i.Member.User.ID)
+					logger.Info("User is on cooldown", zap.String("userId", i.Member.User.ID), zap.Duration("cooldown", cooldown))
 
 					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 						Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -380,7 +380,7 @@ func main() {
 				})
 
 				if err != nil {
-					fmt.Println("Error:", err)
+					logger.Error("Error sending message", zap.Error(err), zap.String("userId", i.Member.User.ID))
 				}
 			case "close":
 				tikId := strings.Split(data.CustomID, ":")[1]
@@ -792,7 +792,7 @@ func main() {
 				})
 
 				if err != nil {
-					fmt.Println("Error:", err)
+					logger.Error("Error sending log message", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
 					newmsg := "Your ticket couldn't be closed properly (couldn't send transcript)! Please try again later."
 					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 						Content: &newmsg,
