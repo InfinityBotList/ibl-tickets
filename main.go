@@ -781,6 +781,39 @@ func main() {
 					}
 				}
 
+				_, err = tx.Exec(ctx, "UPDATE tickets SET open = false WHERE id = $1", tikId)
+
+				if err != nil {
+					logger.Error("Error updating in transaction", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
+					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+						Content: stringp("An error occurred while updating in a transaction for this ticket. Please contact our support team about this:" + err.Error()),
+					})
+				}
+
+				err = tx.Commit(ctx)
+
+				if err != nil {
+					logger.Error("Error committing transaction", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
+					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+						Content: stringp("An error occurred while committing a transaction for this ticket. Please contact our support team about this:" + err.Error()),
+					})
+				}
+
+				closedBool := true
+
+				_, err = s.ChannelEditComplex(ticketsChannelId, &discordgo.ChannelEdit{
+					ParentID: config.Channels.ThreadChannel,
+					Archived: &closedBool,
+					Locked:   &closedBool,
+				})
+
+				if err != nil {
+					logger.Error("Error saving thread state", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
+					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+						Content: stringp("An error occurred while saving thread state for this ticket. Please contact our support team about this:" + err.Error()),
+					})
+				}
+
 				newmsg := "Your ticket has been closed. A ibltranscript of this ticket can be found at: " + config.Database.ExposedPath + "/" + tikId + ".ibltranscript"
 				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 					Content: &newmsg,
