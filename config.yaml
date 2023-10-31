@@ -33,7 +33,7 @@ database:
   postgres: postgresql:///infinity
   redis: redis://localhost:6379
   file_storage_path: /silverpelt/cdn/ibl/ticket-blobs/tickets
-  exposed_path: https://cdn.infinitybots.gg/ibl/ticket-blobs/tickets
+  exposed_path: https://cdn.infinitybots.gg/ticket-blobs/tickets
 channels:
   thread_channel: 816156732929081366
   log_channel: 815511720121335838

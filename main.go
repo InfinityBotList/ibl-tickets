@@ -72,6 +72,20 @@ func (o Owners) IsOwner(userID string) bool {
 	return false
 }
 
+func init() {
+	iblfile.RegisterFormat(
+		"ticket",
+		&iblfile.Format{
+			Format:  "transcript",
+			Version: "a1",
+		},
+	)
+}
+
+func stringp(s string) *string {
+	return &s
+}
+
 func createAttachmentBlob(msg *discordgo.Message) ([]types.Attachment, map[string]*bytes.Buffer, error) {
 	var attachments []types.Attachment
 	var bufs = map[string]*bytes.Buffer{}
@@ -477,14 +491,8 @@ func main() {
 
 				if err != nil {
 					logger.Error("Error creating PEM key", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
-					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
-						Data: &discordgo.InteractionResponseData{
-							Content: "An error occurred while generating RSA encryption keys for this ticket. Please contact our support team about this!",
-							AllowedMentions: &discordgo.MessageAllowedMentions{
-								Parse: []discordgo.AllowedMentionType{},
-							},
-						},
+					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+						Content: stringp("An error occurred while generating RSA encryption keys for this ticket. Please contact our support team about this!"),
 					})
 					return
 				}
@@ -548,14 +556,8 @@ func main() {
 
 				if err != nil {
 					logger.Error("Error getting messages", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
-					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
-						Data: &discordgo.InteractionResponseData{
-							Content: "An error occurred while getting messages for this ticket. Please contact our support team about this:" + err.Error(),
-							AllowedMentions: &discordgo.MessageAllowedMentions{
-								Parse: []discordgo.AllowedMentionType{},
-							},
-						},
+					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+						Content: stringp("An error occurred while getting messages for this ticket. Please contact our support team about this:" + err.Error()),
 					})
 					return
 				}
@@ -610,14 +612,8 @@ func main() {
 
 				if err != nil {
 					logger.Error("Error creating transcript", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
-					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
-						Data: &discordgo.InteractionResponseData{
-							Content: "An error occurred while creating a transcript for this ticket. Please contact our support team about this:" + err.Error(),
-							AllowedMentions: &discordgo.MessageAllowedMentions{
-								Parse: []discordgo.AllowedMentionType{},
-							},
-						},
+					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+						Content: stringp("An error occurred while creating a transcript for this ticket. Please contact our support team about this:" + err.Error()),
 					})
 					return
 				}
@@ -629,14 +625,8 @@ func main() {
 
 					if err != nil {
 						logger.Error("Error creating transcript", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
-						s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-							Type: discordgo.InteractionResponseChannelMessageWithSource,
-							Data: &discordgo.InteractionResponseData{
-								Content: "An error occurred while creating a transcript for this ticket. Please contact our support team about this:" + err.Error(),
-								AllowedMentions: &discordgo.MessageAllowedMentions{
-									Parse: []discordgo.AllowedMentionType{},
-								},
-							},
+						s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+							Content: stringp("An error occurred while creating a transcript for this ticket. Please contact our support team about this:" + err.Error()),
 						})
 						return
 					}
@@ -654,14 +644,8 @@ func main() {
 
 				if err != nil {
 					logger.Error("Error creating transcript", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
-					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
-						Data: &discordgo.InteractionResponseData{
-							Content: "An error occurred while creating a transcript for this ticket. Please contact our support team about this:" + err.Error(),
-							AllowedMentions: &discordgo.MessageAllowedMentions{
-								Parse: []discordgo.AllowedMentionType{},
-							},
-						},
+					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+						Content: stringp("An error occurred while creating a transcript for this ticket. Please contact our support team about this:" + err.Error()),
 					})
 					return
 				}
@@ -672,14 +656,8 @@ func main() {
 
 				if err != nil {
 					logger.Error("Error creating transcript", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
-					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
-						Data: &discordgo.InteractionResponseData{
-							Content: "An error occurred while creating a transcript for this ticket. Please contact our support team about this:" + err.Error(),
-							AllowedMentions: &discordgo.MessageAllowedMentions{
-								Parse: []discordgo.AllowedMentionType{},
-							},
-						},
+					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+						Content: stringp("An error occurred while creating a transcript for this ticket. Please contact our support team about this:" + err.Error()),
 					})
 					return
 				}
@@ -688,32 +666,20 @@ func main() {
 
 				if err != nil {
 					logger.Error("Error creating transcript", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
-					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
-						Data: &discordgo.InteractionResponseData{
-							Content: "An error occurred while creating a transcript for this ticket. Please contact our support team about this:" + err.Error(),
-							AllowedMentions: &discordgo.MessageAllowedMentions{
-								Parse: []discordgo.AllowedMentionType{},
-							},
-						},
+					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+						Content: stringp("An error occurred while creating a transcript for this ticket. Please contact our support team about this:" + err.Error()),
 					})
 					return
 				}
 
-				var transcriptOutput *bytes.Buffer
+				var transcriptOutput = bytes.NewBuffer([]byte{})
 
 				err = iblf.WriteOutput(transcriptOutput)
 
 				if err != nil {
 					logger.Error("Error creating transcript", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
-					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
-						Data: &discordgo.InteractionResponseData{
-							Content: "An error occurred while creating a transcript for this ticket. Please contact our support team about this:" + err.Error(),
-							AllowedMentions: &discordgo.MessageAllowedMentions{
-								Parse: []discordgo.AllowedMentionType{},
-							},
-						},
+					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+						Content: stringp("An error occurred while creating a transcript for this ticket. Please contact our support team about this:" + err.Error()),
 					})
 					return
 				}
@@ -723,14 +689,8 @@ func main() {
 
 				if err != nil {
 					logger.Error("Error saving transcript file", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
-					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
-						Data: &discordgo.InteractionResponseData{
-							Content: "An error occurred while saving a transcript for this ticket. Please contact our support team about this:" + err.Error(),
-							AllowedMentions: &discordgo.MessageAllowedMentions{
-								Parse: []discordgo.AllowedMentionType{},
-							},
-						},
+					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+						Content: stringp("An error occurred while creating a transcript for this ticket. Please contact our support team about this:" + err.Error()),
 					})
 					return
 				}
@@ -739,14 +699,8 @@ func main() {
 
 				if err != nil {
 					logger.Error("Error saving transcript file", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
-					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-						Type: discordgo.InteractionResponseChannelMessageWithSource,
-						Data: &discordgo.InteractionResponseData{
-							Content: "An error occurred while saving a transcript for this ticket. Please contact our support team about this:" + err.Error(),
-							AllowedMentions: &discordgo.MessageAllowedMentions{
-								Parse: []discordgo.AllowedMentionType{},
-							},
-						},
+					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+						Content: stringp("An error occurred while saving a transcript for this ticket. Please contact our support team about this:" + err.Error()),
 					})
 					return
 				}
