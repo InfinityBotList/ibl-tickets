@@ -383,7 +383,7 @@ func close(s *discordgo.Session, i *discordgo.Interaction, data discordgo.Messag
 
 	files := []*discordgo.File{
 		{
-			Name:        "enckey.pem",
+			Name:        "enckey-" + tikId + ".pem",
 			Reader:      bytes.NewReader(priv),
 			ContentType: "application/x-pem-file",
 		},
@@ -407,7 +407,7 @@ func close(s *discordgo.Session, i *discordgo.Interaction, data discordgo.Messag
 	} else {
 		files := []*discordgo.File{
 			{
-				Name:        "enckey.pem",
+				Name:        "enckey-" + tikId + ".pem",
 				Reader:      bytes.NewReader(priv),
 				ContentType: "application/x-pem-file",
 			},
