@@ -3,6 +3,10 @@ package msgcomponent
 import (
 	"bytes"
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"crypto/sha256"
 	"fmt"
 	"ibl-tickets/types"
 	"ibl-tickets/utils"
@@ -10,11 +14,9 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/infinitybotlist/eureka/pem"
-	"github.com/infinitybotlist/iblfile"
+	"github.com/infinitybotlist/eureka/crypto"
 	"github.com/jackc/pgx/v5/pgxpool"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/redis/go-redis/v9"
@@ -62,65 +64,66 @@ func _createAttachmentBlob(logger *zap.Logger, msg *discordgo.Message) ([]types.
 		}
 
 		bufs[attachment.ID] = bytes.NewBuffer(bt)
+
+		attachments = append(attachments, types.Attachment{
+			ID:     attachment.ID,
+			Name:   attachment.Filename,
+			Errors: []string{},
+		})
 	}
 
 	return attachments, bufs, nil
 }
 
 func close(s *discordgo.Session, i *discordgo.Interaction, data discordgo.MessageComponentInteractionData, config *types.Config, pool *pgxpool.Pool, ctx context.Context, logger *zap.Logger, rediscli *redis.Client) error {
-	// Respond with interrim closing ticket message/warning
 	tikId := strings.Split(data.CustomID, ":")[1]
 
 	// Get the open tickets channel ID
 	var ticketsChannelId string
+	var open bool
 	var userId string
 	var issue string
 	var topicId string
 	var ticketContext map[string]string
-	var open bool
 
 	tx, err := pool.Begin(ctx)
 
 	if err != nil {
-		logger.Error("Error beginning transaction", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
-
-		// Make sure theres a response to edit
-		s.InteractionRespond(i, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: "Please wait...",
-				AllowedMentions: &discordgo.MessageAllowedMentions{
-					Parse: []discordgo.AllowedMentionType{},
-				},
-			},
-		})
-
-		return fmt.Errorf("error beginning transaction: %w", err)
+		logger.Error("Error starting transaction", zap.Error(err))
+		return err
 	}
 
-	defer tx.Rollback(ctx)
-
-	err = tx.QueryRow(ctx, "SELECT issue, topic_id, user_id, channel_id, ticket_context, open FROM tickets WHERE id = $1", tikId).Scan(&issue, &topicId, &userId, &ticketsChannelId, &ticketContext, &open)
+	err = tx.QueryRow(ctx, "SELECT issue, topic_id, user_id, channel_id, open, ticket_context FROM tickets WHERE id = $1", tikId).Scan(&issue, &topicId, &userId, &ticketsChannelId, &open, &ticketContext)
 
 	if err != nil {
-		logger.Error("Error getting ticket from database", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
-
-		// Make sure theres a response to edit
-		s.InteractionRespond(i, &discordgo.InteractionResponse{
+		logger.Error("Error getting ticket", zap.Error(err), zap.String("ticket_id", tikId))
+		return s.InteractionRespond(i, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
-				Content: "Please wait...",
+				Content: "An error occurred while finding this ticket. Please contact our support team about this!",
+				Flags:   discordgo.MessageFlagsEphemeral,
 				AllowedMentions: &discordgo.MessageAllowedMentions{
 					Parse: []discordgo.AllowedMentionType{},
 				},
 			},
 		})
+	}
 
-		return fmt.Errorf("error getting ticket from database: %w", err)
+	if ticketsChannelId != i.ChannelID {
+		return s.InteractionRespond(i, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "You can't close a ticket that isn't in this channel!",
+				Flags:   discordgo.MessageFlagsEphemeral,
+				AllowedMentions: &discordgo.MessageAllowedMentions{
+					Parse: []discordgo.AllowedMentionType{},
+				},
+			},
+		})
 	}
 
 	if !open {
-		s.InteractionRespond(i, &discordgo.InteractionResponse{
+		return s.InteractionRespond(i, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
 				Content: "This ticket is already closed?!",
@@ -130,28 +133,9 @@ func close(s *discordgo.Session, i *discordgo.Interaction, data discordgo.Messag
 				},
 			},
 		})
-		return nil
 	}
 
-	if ticketsChannelId != i.ChannelID {
-		err = s.InteractionRespond(i, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: "You can't close a ticket from outside its thread!",
-				Flags:   discordgo.MessageFlagsEphemeral,
-				AllowedMentions: &discordgo.MessageAllowedMentions{
-					Parse: []discordgo.AllowedMentionType{},
-				},
-			},
-		})
-
-		if err != nil {
-			logger.Error("Error sending message", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
-		}
-		return nil
-	}
-
-	// Respond with interrim closing ticket message/warning
+	// Start closing ticket
 	s.InteractionRespond(i, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
@@ -162,197 +146,196 @@ func close(s *discordgo.Session, i *discordgo.Interaction, data discordgo.Messag
 		},
 	})
 
-	// Create PEM key secret
-	priv, pub, err := pem.MakePem()
+	topic, ok := config.Topics[topicId]
 
-	if err != nil {
-		logger.Error("Error creating PEM key", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
-		s.InteractionResponseEdit(i, &discordgo.WebhookEdit{
-			Content: utils.Stringp("An error occurred while generating RSA encryption keys for this ticket. Please contact our support team about this!"),
-		})
-		return fmt.Errorf("error creating PEM key: %w", err)
+	if !ok {
+		return fmt.Errorf("invalid topic id: %s", topicId)
 	}
 
-	var initialSections = map[string]*bytes.Buffer{}
+	// Update the database setting open to false
+	_, err = tx.Exec(ctx, "UPDATE tickets SET open = false, close_user_id = $2 WHERE id = $1", tikId, i.Member.User.ID)
 
-	getMessages := func() (*bytes.Buffer, error) {
-		// Collect every message in the channel
-		var messages []types.Message
-		var lastMessageId string
-		for {
-			msgs, err := s.ChannelMessages(ticketsChannelId, 100, lastMessageId, "", "")
+	if err != nil {
+		logger.Error("Error closing ticket", zap.Error(err), zap.String("ticket_id", tikId))
+		_, err = s.InteractionResponseEdit(i, &discordgo.WebhookEdit{
+			Content: utils.Stringp("An error occurred while closing this ticket. Please contact our support team about this!"),
+			AllowedMentions: &discordgo.MessageAllowedMentions{
+				Parse: []discordgo.AllowedMentionType{},
+			},
+		})
+		return err
+	}
+
+	// Collect every message in the channel
+	var messages []types.Message
+
+	var lastMessageId string
+	attachmentBuf := map[string]*bytes.Buffer{}
+	for {
+		msgs, err := s.ChannelMessages(ticketsChannelId, 100, lastMessageId, "", "")
+
+		if err != nil {
+			logger.Error("Error getting messages", zap.Error(err), zap.String("ticket_id", tikId))
+
+			// Send a message to the user
+			_, err = s.InteractionResponseEdit(i, &discordgo.WebhookEdit{
+				Content: utils.Stringp("Your ticket couldn't be closed properly (couldn't find messages)! Please try again later.\nlastMessageId=" + lastMessageId),
+				AllowedMentions: &discordgo.MessageAllowedMentions{
+					Parse: []discordgo.AllowedMentionType{},
+				},
+			})
+			return err
+		}
+
+		for _, msg := range msgs {
+			attachments, bufs, err := _createAttachmentBlob(logger, msg)
 
 			if err != nil {
-				return nil, fmt.Errorf("error getting messages: %w", err)
+				return fmt.Errorf("error creating attachment blob: %w", err)
 			}
 
-			for _, msg := range msgs {
-				var attachments []types.Attachment
-
-				if len(msg.Attachments) > 0 {
-					var cdnBlob map[string]*bytes.Buffer
-
-					attachments, cdnBlob, err = _createAttachmentBlob(logger, msg)
-
-					if err != nil {
-						return nil, fmt.Errorf("error creating attachment blob: %w", err)
-					}
-
-					for id, buf := range cdnBlob {
-						initialSections["attachments/"+id] = buf
-					}
-				}
-
-				messages = append(messages, types.Message{
-					ID:          msg.ID,
-					AuthorID:    msg.Author.ID,
-					Content:     msg.Content,
-					Embeds:      msg.Embeds,
-					Attachments: attachments,
-				})
+			for k, v := range bufs {
+				attachmentBuf[k] = v
 			}
 
-			if len(msgs) < 100 {
-				break
-			}
-
-			lastMessageId = msgs[len(msgs)-1].ID
+			messages = append(messages, types.Message{
+				ID:          msg.ID,
+				AuthorID:    msg.Author.ID,
+				Content:     msg.Content,
+				Embeds:      msg.Embeds,
+				Attachments: attachments,
+			})
 		}
 
-		bt, err := json.Marshal(messages)
-
-		if err != nil {
-			return nil, fmt.Errorf("error marshalling messages: %w", err)
+		if len(msgs) < 100 {
+			break
 		}
 
-		return bytes.NewBuffer(bt), nil
+		lastMessageId = msgs[len(msgs)-1].ID
 	}
 
-	buf, err := getMessages()
+	// Update database with the messages
+	_, err = tx.Exec(ctx, "UPDATE tickets SET messages = $1 WHERE id = $2", messages, tikId)
 
 	if err != nil {
-		logger.Error("Error getting messages", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
-		return fmt.Errorf("error getting messages: %w", err)
-	}
+		logger.Error("Error updating ticket with messages", zap.Error(err), zap.String("ticket_id", tikId))
 
-	var sectionsToEnc = []iblfile.DataEncrypt{
-		{
-			Section: "data",
-			Pubkey:  pub,
-			Data: func() (*bytes.Buffer, error) {
-				return buf, nil
-			},
-		},
-		{
-			Section: "transcriptMeta",
-			Pubkey:  pub,
-			Data: func() (*bytes.Buffer, error) {
-				transcript := types.FileTranscriptData{
-					Issue:         issue,
-					TopicID:       topicId,
-					Topic:         config.Topics[topicId],
-					TicketContext: ticketContext,
-					UserID:        userId,
-					CloseUserID:   i.Member.User.ID,
-					ChannelID:     ticketsChannelId,
-					TicketID:      tikId,
-				}
-
-				bt, err := json.Marshal(transcript)
-
-				if err != nil {
-					return nil, fmt.Errorf("error marshalling transcript meta: %w", err)
-				}
-
-				return bytes.NewBuffer(bt), nil
-			},
-		},
-	}
-
-	for key, value := range initialSections {
-		sectionsToEnc = append(sectionsToEnc, iblfile.DataEncrypt{
-			Section: key,
-			Pubkey:  pub,
-			Data: func() (*bytes.Buffer, error) {
-				return value, nil
+		// Send a message to the user
+		newmsg := "Your ticket couldn't be closed properly (couldn't update database)! Please try again later."
+		_, err = s.InteractionResponseEdit(i, &discordgo.WebhookEdit{
+			Content: &newmsg,
+			AllowedMentions: &discordgo.MessageAllowedMentions{
+				Parse: []discordgo.AllowedMentionType{},
 			},
 		})
+		return err
 	}
 
-	encMap, encDataMap, err := iblfile.EncryptSections(
-		sectionsToEnc...,
-	)
+	// If we have attachments, upload them to FileStoragePath
+	if len(attachmentBuf) > 0 {
+		logger.Info("Uploading attachments", zap.Int("count", len(attachmentBuf)), zap.String("ticket_id", tikId))
 
-	if err != nil {
-		logger.Error("Error creating transcript", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
-		return fmt.Errorf("error encrypting sections: %w", err)
-	}
-
-	iblf := iblfile.New()
-
-	for key, value := range encMap {
-		err = iblf.WriteSection(value, key)
+		// Delete FileStoragePath/{tikId} folder if it exists
+		err = os.RemoveAll(config.Database.FileStoragePath + "/" + tikId)
 
 		if err != nil {
-			logger.Error("Error creating transcript", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
-			return fmt.Errorf("error writing section: %w", err)
+			logger.Error("Error removing folder", zap.Error(err), zap.String("ticket_id", tikId))
+
+			// Send a message to the user
+			_, err = s.InteractionResponseEdit(i, &discordgo.WebhookEdit{
+				Content: utils.Stringp("Your ticket couldn't be closed properly (couldn't remove folder)! Please try again later."),
+				AllowedMentions: &discordgo.MessageAllowedMentions{
+					Parse: []discordgo.AllowedMentionType{},
+				},
+			})
+			return err
+		}
+
+		// Make the FileStoragePath/{tikId} folder
+		err = os.MkdirAll(config.Database.FileStoragePath+"/"+tikId, 0700)
+
+		if err != nil {
+			logger.Error("Error creating folder", zap.Error(err), zap.String("ticket_id", tikId))
+
+			// Send a message to the user
+			_, err = s.InteractionResponseEdit(i, &discordgo.WebhookEdit{
+				Content: utils.Stringp("Your ticket couldn't be closed properly (couldn't create folder)! Please try again later."),
+				AllowedMentions: &discordgo.MessageAllowedMentions{
+					Parse: []discordgo.AllowedMentionType{},
+				},
+			})
+			return err
+		}
+
+		encKey := crypto.RandString(4096)
+
+		keyHash := sha256.New()
+		keyHash.Write([]byte(encKey))
+
+		_, err = tx.Exec(ctx, "UPDATE tickets SET enc_key = $1 WHERE id = $2", encKey, tikId)
+
+		if err != nil {
+			logger.Error("Error updating ticket with enc_key", zap.Error(err), zap.String("ticket_id", tikId))
+
+			// Send a message to the user
+			_, err = s.InteractionResponseEdit(i, &discordgo.WebhookEdit{
+				Content: utils.Stringp("Your ticket couldn't be closed properly (couldn't update database with enc_key)! Please try again later."),
+				AllowedMentions: &discordgo.MessageAllowedMentions{
+					Parse: []discordgo.AllowedMentionType{},
+				},
+			})
+			return err
+		}
+
+		for k, v := range attachmentBuf {
+			// AES512-GCM encrypt the attachment
+			c, err := aes.NewCipher(keyHash.Sum(nil))
+
+			if err != nil {
+				logger.Error("Error creating cipher", zap.Error(err), zap.String("ticket_id", tikId))
+
+				// Send a message to the user
+				_, err = s.InteractionResponseEdit(i, &discordgo.WebhookEdit{
+					Content: utils.Stringp("Your ticket couldn't be closed properly (couldn't create cipher)! Please try again later."),
+					AllowedMentions: &discordgo.MessageAllowedMentions{
+						Parse: []discordgo.AllowedMentionType{},
+					},
+				})
+				return err
+			}
+
+			gcm, err := cipher.NewGCM(c)
+
+			if err != nil {
+				return err
+			}
+
+			aesNonce := make([]byte, gcm.NonceSize())
+			if _, err = io.ReadFull(rand.Reader, aesNonce); err != nil {
+				return err
+			}
+
+			data := gcm.Seal(aesNonce, aesNonce, v.Bytes(), nil)
+
+			// Save to FileStoragePath/{tikId}/{attachmentId}.encBlob
+			err = os.WriteFile(config.Database.FileStoragePath+"/"+tikId+"/"+k+".encBlob", data, 0700)
+
+			if err != nil {
+				logger.Error("Error writing file", zap.Error(err), zap.String("ticket_id", tikId))
+
+				// Send a message to the user
+				_, err = s.InteractionResponseEdit(i, &discordgo.WebhookEdit{
+					Content: utils.Stringp("Your ticket couldn't be closed properly (couldn't write file)! Please try again later."),
+					AllowedMentions: &discordgo.MessageAllowedMentions{
+						Parse: []discordgo.AllowedMentionType{},
+					},
+				})
+				return err
+			}
 		}
 	}
 
-	fileType := "ticket.transcript"
-	metadata := iblfile.Meta{
-		CreatedAt:      time.Now(),
-		Protocol:       iblfile.Protocol,
-		Type:           fileType,
-		EncryptionData: encDataMap,
-	}
-
-	f, err := iblfile.GetFormat(fileType)
-
-	if err != nil {
-		logger.Error("Error creating transcript", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
-		return fmt.Errorf("error getting format: %w", err)
-	}
-
-	metadata.FormatVersion = f.Version
-
-	mdb, err := json.Marshal(metadata)
-
-	if err != nil {
-		logger.Error("Error creating transcript", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
-		return fmt.Errorf("error marshalling metadata: %w", err)
-	}
-
-	err = iblf.WriteSection(bytes.NewBuffer(mdb), "meta")
-
-	if err != nil {
-		logger.Error("Error creating transcript", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
-		return fmt.Errorf("error writing metadata: %w", err)
-	}
-
-	var transcriptOutput = bytes.NewBuffer([]byte{})
-
-	err = iblf.WriteOutput(transcriptOutput)
-
-	if err != nil {
-		logger.Error("Error creating transcript", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
-		return fmt.Errorf("error writing output: %w", err)
-	}
-
-	// Save transcript file to cdn
-	file, err := os.Create(config.Database.FileStoragePath + "/" + tikId + ".ibltranscript")
-
-	if err != nil {
-		logger.Error("Error saving transcript file", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
-		return fmt.Errorf("error creating transcript file: %w", err)
-	}
-
-	_, err = io.Copy(file, transcriptOutput)
-
-	if err != nil {
-		logger.Error("Error saving transcript file", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
-		return fmt.Errorf("error copying transcript file: %w", err)
-	}
+	ticketUrl := config.Database.ExposedPath + "/tickets/" + tikId
 
 	// Send transcript to ticket thread channel and to user
 	embed := &discordgo.MessageEmbed{
@@ -375,94 +358,113 @@ func close(s *discordgo.Session, i *discordgo.Interaction, data discordgo.Messag
 			},
 			{
 				Name:   "Ticket URL",
-				Value:  config.Database.ExposedPath + "/" + tikId + ".ibltranscript",
+				Value:  ticketUrl,
 				Inline: false,
 			},
 		},
 	}
 
-	files := []*discordgo.File{
-		{
-			Name:        "enckey-" + tikId + ".pem",
-			Reader:      bytes.NewReader(priv),
-			ContentType: "application/x-pem-file",
-		},
+	var transcriptData = types.FileTranscriptData{
+		Issue:         issue,
+		TopicID:       topicId,
+		Topic:         topic,
+		TicketContext: ticketContext,
+		Messages:      messages,
+		UserID:        userId,
+		CloseUserID:   i.Member.User.ID,
+		ChannelID:     ticketsChannelId,
+		TicketID:      tikId,
+	}
+
+	transcript, err := json.Marshal(transcriptData)
+
+	if err != nil {
+		logger.Error("Error marshalling transcript", zap.Error(err), zap.String("ticket_id", tikId))
+
+		// Send a message to the user
+		_, err = s.InteractionResponseEdit(i, &discordgo.WebhookEdit{
+			Content: utils.Stringp("Your ticket couldn't be closed properly (couldn't create transcript)! Please try again later."),
+			AllowedMentions: &discordgo.MessageAllowedMentions{
+				Parse: []discordgo.AllowedMentionType{},
+			},
+		})
+		return err
+	}
+
+	file := &discordgo.File{
+		Name:        tikId + ".ibltranscript",
+		ContentType: "application/json+ibltranscript",
+		Reader:      bytes.NewReader([]byte(transcript)),
 	}
 
 	_, err = s.ChannelMessageSendComplex(config.Channels.LogChannel, &discordgo.MessageSend{
 		Embeds: []*discordgo.MessageEmbed{embed},
-		Files:  files,
+		Files:  []*discordgo.File{file},
 	})
 
 	if err != nil {
-		logger.Error("Error sending log message", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
-		return fmt.Errorf("error sending log message: %w", err)
+		logger.Error("Error sending transcript to logs channel", zap.Error(err), zap.String("ticket_id", tikId))
+		_, err = s.InteractionResponseEdit(i, &discordgo.WebhookEdit{
+			Content: utils.Stringp("Your ticket couldn't be closed properly (couldn't send transcript)! Please try again later"),
+			AllowedMentions: &discordgo.MessageAllowedMentions{
+				Parse: []discordgo.AllowedMentionType{},
+			},
+		})
+		return err
 	}
 
 	// Create DM if possible
 	dm, err := s.UserChannelCreate(userId)
 
 	if err != nil {
-		logger.Warn("Error creating DM channel", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
+		logger.Error("Error creating DM channel", zap.Error(err), zap.String("user_id", userId))
 	} else {
-		files := []*discordgo.File{
-			{
-				Name:        "enckey-" + tikId + ".pem",
-				Reader:      bytes.NewReader(priv),
-				ContentType: "application/x-pem-file",
-			},
-		}
+		// Reset file reader
+		file.Reader = bytes.NewReader([]byte(transcript))
 
 		_, err = s.ChannelMessageSendComplex(dm.ID, &discordgo.MessageSend{
 			Embeds: []*discordgo.MessageEmbed{embed},
-			Files:  files,
+			Files:  []*discordgo.File{file},
 		})
 
 		if err != nil {
-			logger.Error("Error sending DM message", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
+			logger.Error("Error sending transcript to user", zap.Error(err), zap.String("user_id", userId))
 		}
 	}
 
-	_, err = tx.Exec(ctx, "UPDATE tickets SET open = false WHERE id = $1", tikId)
+	// Set thread to read-only
+	var locked = true
+	_, err = s.ChannelEdit(ticketsChannelId, &discordgo.ChannelEdit{
+		ParentID: os.Getenv("TICKET_THREAD_CHANNEL"),
+		Locked:   &locked,
+		Archived: &locked,
+	})
 
 	if err != nil {
-		logger.Error("Error updating in transaction", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
-		s.InteractionResponseEdit(i, &discordgo.WebhookEdit{
-			Content: utils.Stringp("An error occurred while updating in a transaction for this ticket. Please contact our support team about this:" + err.Error()),
+		logger.Error("Error setting thread to read-only", zap.Error(err), zap.String("ticket_id", tikId))
+		// Send a message to the user
+		_, err = s.InteractionResponseEdit(i, &discordgo.WebhookEdit{
+			Content: utils.Stringp("Your ticket couldn't be closed properly! Please try again later."),
+			AllowedMentions: &discordgo.MessageAllowedMentions{
+				Parse: []discordgo.AllowedMentionType{},
+			},
 		})
+		return err
 	}
 
 	err = tx.Commit(ctx)
 
 	if err != nil {
-		logger.Error("Error committing transaction", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
-		s.InteractionResponseEdit(i, &discordgo.WebhookEdit{
-			Content: utils.Stringp("An error occurred while committing a transaction for this ticket. Please contact our support team about this:" + err.Error()),
-		})
+		logger.Error("Error committing transaction", zap.Error(err))
+		return err
 	}
 
-	closedBool := true
-
-	_, err = s.ChannelEditComplex(ticketsChannelId, &discordgo.ChannelEdit{
-		ParentID: config.Channels.ThreadChannel,
-		Archived: &closedBool,
-		Locked:   &closedBool,
-	})
-
-	if err != nil {
-		logger.Error("Error saving thread state", zap.Error(err), zap.String("ticketId", tikId), zap.String("userId", i.Member.User.ID))
-		s.InteractionResponseEdit(i, &discordgo.WebhookEdit{
-			Content: utils.Stringp("An error occurred while saving thread state for this ticket. Please contact our support team about this:" + err.Error()),
-		})
-	}
-
-	newmsg := "Your ticket has been closed. A ibltranscript of this ticket can be found at: " + config.Database.ExposedPath + "/" + tikId + ".ibltranscript"
-	s.InteractionResponseEdit(i, &discordgo.WebhookEdit{
-		Content: &newmsg,
+	_, err = s.InteractionResponseEdit(i, &discordgo.WebhookEdit{
+		Content: utils.Stringp("Your ticket has been closed and can be viewed at: " + ticketUrl),
 		AllowedMentions: &discordgo.MessageAllowedMentions{
 			Parse: []discordgo.AllowedMentionType{},
 		},
 	})
 
-	return nil
+	return err
 }

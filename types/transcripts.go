@@ -23,6 +23,7 @@ type FileTranscriptData struct {
 	TopicID       string            `json:"topic_id"`
 	Topic         Topic             `json:"topic"`
 	TicketContext map[string]string `json:"ticket_context"`
+	Messages      []Message         `json:"messages"`
 	UserID        string            `json:"user_id"`
 	CloseUserID   string            `json:"close_user_id"`
 	ChannelID     string            `json:"channel_id"`
