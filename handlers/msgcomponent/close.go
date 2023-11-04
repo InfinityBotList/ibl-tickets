@@ -252,7 +252,7 @@ func close(s *discordgo.Session, i *discordgo.Interaction, data discordgo.Messag
 		}
 
 		// Make the FileStoragePath/{tikId} folder
-		err = os.MkdirAll(config.Database.FileStoragePath+"/"+tikId, 0700)
+		err = os.MkdirAll(config.Database.FileStoragePath+"/"+tikId, 0775)
 
 		if err != nil {
 			logger.Error("Error creating folder", zap.Error(err), zap.String("ticket_id", tikId))
@@ -318,7 +318,7 @@ func close(s *discordgo.Session, i *discordgo.Interaction, data discordgo.Messag
 			data := gcm.Seal(aesNonce, aesNonce, v.Bytes(), nil)
 
 			// Save to FileStoragePath/{tikId}/{attachmentId}.encBlob
-			err = os.WriteFile(config.Database.FileStoragePath+"/"+tikId+"/"+k+".encBlob", data, 0700)
+			err = os.WriteFile(config.Database.FileStoragePath+"/"+tikId+"/"+k+".encBlob", data, 0775)
 
 			if err != nil {
 				logger.Error("Error writing file", zap.Error(err), zap.String("ticket_id", tikId))
