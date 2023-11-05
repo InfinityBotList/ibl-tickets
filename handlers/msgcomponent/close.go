@@ -31,11 +31,13 @@ func _createAttachmentBlob(logger *zap.Logger, msg *discordgo.Message) ([]types.
 	for _, attachment := range msg.Attachments {
 		if attachment.Size > 16_000_000 {
 			attachments = append(attachments, types.Attachment{
-				ID:       attachment.ID,
-				Name:     attachment.Filename,
-				URL:      attachment.URL,
-				ProxyURL: attachment.ProxyURL,
-				Errors:   []string{"Attachment is too large to be uploaded to the transcript."},
+				ID:          attachment.ID,
+				Name:        attachment.Filename,
+				URL:         attachment.URL,
+				ProxyURL:    attachment.ProxyURL,
+				Size:        attachment.Size,
+				ContentType: attachment.ContentType,
+				Errors:      []string{"Attachment is too large to be uploaded to the transcript."},
 			})
 			continue
 		}
