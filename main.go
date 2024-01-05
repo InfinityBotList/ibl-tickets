@@ -14,7 +14,6 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/infinitybotlist/eureka/proxy"
 	"github.com/infinitybotlist/eureka/snippets"
-	"github.com/infinitybotlist/iblfile"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
@@ -65,16 +64,6 @@ func (o Owners) IsOwner(userID string) bool {
 	}
 
 	return false
-}
-
-func init() {
-	iblfile.RegisterFormat(
-		"ticket",
-		&iblfile.Format{
-			Format:  "transcript",
-			Version: "a1",
-		},
-	)
 }
 
 func main() {
@@ -202,7 +191,7 @@ func main() {
 						Label:       topic.Name,
 						Value:       key,
 						Description: topic.Description,
-						Emoji: discordgo.ComponentEmoji{
+						Emoji: &discordgo.ComponentEmoji{
 							Name: topic.Emoji,
 						},
 					})

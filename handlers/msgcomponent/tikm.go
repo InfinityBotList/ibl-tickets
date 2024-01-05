@@ -57,7 +57,7 @@ func tikm(s *discordgo.Session, i *discordgo.Interaction, data discordgo.Message
 		s.InteractionRespond(i, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
-				Content: "You are on cooldown. Please wait " + cooldown.String() + " before creating another ticket.",
+				Content: "You are on cooldown. Please wait ``" + cooldown.String() + "`` before creating another ticket.",
 				Flags:   discordgo.MessageFlagsEphemeral,
 				AllowedMentions: &discordgo.MessageAllowedMentions{
 					Parse: []discordgo.AllowedMentionType{},

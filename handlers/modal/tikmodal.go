@@ -41,7 +41,7 @@ func tikModal(s *discordgo.Session, i *discordgo.Interaction, data discordgo.Mod
 	}
 
 	// Send a message to the user
-	s.InteractionRespond(i, &discordgo.InteractionResponse{
+	err := s.InteractionRespond(i, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: "Creating ticket.\n\nPlease wait...",
@@ -51,6 +51,10 @@ func tikModal(s *discordgo.Session, i *discordgo.Interaction, data discordgo.Mod
 			},
 		},
 	})
+
+	if err != nil {
+		return fmt.Errorf("error sending create response: %w", err)
+	}
 
 	var answers = map[string]string{}
 	var issue string
@@ -111,7 +115,7 @@ func tikModal(s *discordgo.Session, i *discordgo.Interaction, data discordgo.Mod
 		Content: i.Member.User.Mention() + " " + rolesStr,
 		Embeds: []*discordgo.MessageEmbed{
 			{
-				Title:       "Ticket created by " + i.Member.User.Username + "#" + i.Member.User.Discriminator,
+				Title:       "Ticket created by " + i.Member.User.Username + "(" + i.Member.User.GlobalName + ")",
 				Description: answersStr,
 				Fields: []*discordgo.MessageEmbedField{
 					{
@@ -150,10 +154,10 @@ func tikModal(s *discordgo.Session, i *discordgo.Interaction, data discordgo.Mod
 	if err != nil {
 		logger.Error("Error sending message", zap.Error(err), zap.String("issue", issue), zap.String("topicId", topicId))
 
-		err = _deleteThread(pool, ctx, s, thread.ID, tikId)
+		delThreadErr := _deleteThread(pool, ctx, s, thread.ID, tikId)
 
 		if err != nil {
-			logger.Error("Error deleting thread", zap.Error(err), zap.String("issue", issue), zap.String("topicId", topicId), zap.String("userId", i.Member.User.ID))
+			logger.Error("Error deleting thread", zap.Error(delThreadErr), zap.String("issue", issue), zap.String("topicId", topicId), zap.String("userId", i.Member.User.ID))
 		}
 		return fmt.Errorf("error sending message: %w", err)
 	}
