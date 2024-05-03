@@ -16,8 +16,8 @@ import (
 func tikm(s *discordgo.Session, i *discordgo.Interaction, data discordgo.MessageComponentInteractionData, config *types.Config, pool *pgxpool.Pool, ctx context.Context, logger *zap.Logger, rediscli *redis.Client) error {
 	// Edit existing message to reset the select menu
 	_, err := s.ChannelMessageEditComplex(&discordgo.MessageEdit{
-		Embeds:     i.Message.Embeds,
-		Components: i.Message.Components,
+		Embeds:     &i.Message.Embeds,
+		Components: &i.Message.Components,
 		ID:         i.Message.ID,
 		Channel:    i.Message.ChannelID,
 	})
