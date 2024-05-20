@@ -337,7 +337,7 @@ func close(s *discordgo.Session, i *discordgo.Interaction, data discordgo.Messag
 		}
 	}
 
-	ticketUrl := config.Database.ExposedPath + "/tickets/" + tikId
+	ticketUrl := config.Database.ExposedPath + tikId
 
 	// Send transcript to ticket thread channel and to user
 	embed := &discordgo.MessageEmbed{
