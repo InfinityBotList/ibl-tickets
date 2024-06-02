@@ -1,7 +1,7 @@
 topics:
   gsupport:
     name: General Support
-    description: "General support regarding Infinity Bot List"
+    description: "General support regarding Infinity List"
     emoji: 🤖
     questions:
       - question: "Anything else we need to know?"
@@ -21,7 +21,7 @@ topics:
       - "805761849601294336"
   uhelp:
     name: Urgent Help
-    description: "Urgent help regarding Infinity Bot List"
+    description: "Urgent help regarding Infinity List"
     emoji: 🚨
     questions:
       - question: "Why do you feel this is urgent?"
@@ -29,6 +29,13 @@ topics:
     ping:
       - "805761849601294336"
       - "911918122359988244"
+  request:
+     name: Feature Request
+     description: "Request new features to help improve Infinity List!"
+     emoji: 👥
+     ping:
+      - "815854927719956490"
+      - "869527375925370891"
 database:
   postgres: postgresql:///infinity
   redis: redis://localhost:6379
