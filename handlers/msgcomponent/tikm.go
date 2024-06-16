@@ -92,7 +92,7 @@ func tikm(s *discordgo.Session, i *discordgo.Interaction, data discordgo.Message
 					MinLength:   1,
 					MaxLength:   4000,
 					CustomID:    strconv.Itoa(i),
-					Required:    true,
+					Required:    question.Required,
 					Style:       discordgo.TextInputShort,
 				},
 			},
