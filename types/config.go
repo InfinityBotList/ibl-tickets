@@ -12,6 +12,7 @@ type Topic struct {
 type Question struct {
 	Question    string `yaml:"question"`
 	Placeholder string `yaml:"placeholder"`
+	Required    bool   `yaml:"required"`
 }
 
 type ConfigDatabase struct {
