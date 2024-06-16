@@ -6,6 +6,7 @@ topics:
     questions:
       - question: "Anything else we need to know?"
         placeholder: "I have..."
+        required: false
     ping:
       - "805761849601294336"
   reviewhelp:
@@ -15,8 +16,13 @@ topics:
     questions:
       - question: "What is the bot ID in question?"
         placeholder: "1234567890"
+        required: true
       - question: "Who reviewed your bot?"
         placeholder: "Bob"
+        required: false
+      - question: "Anything else we need to know?"
+        placeholder: "I have..."
+        required: false
     ping:
       - "805761849601294336"
   uhelp:
@@ -26,6 +32,10 @@ topics:
     questions:
       - question: "Why do you feel this is urgent?"
         placeholder: "There is a raid going on/hacked account..."
+        required: true
+      - question: "Anything else we need to know?"
+        placeholder: "I have..."
+        required: false
     ping:
       - "805761849601294336"
       - "911918122359988244"
