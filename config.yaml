@@ -46,6 +46,17 @@ topics:
      ping:
       - "815854927719956490"
       - "869527375925370891"
+  giveaway:
+     name: Claim Giveaway
+     description: "Did you win a giveaway? Claim your Prize!"
+     emoji: 💵
+     questions:
+        - question: "Client ID / Bot ID"
+          placeholder: "What bot would you like this prize issued to?"
+          required: false
+     ping:
+      - "911918122359988244"
+      - "1223897744784228372"
 database:
   postgres: postgresql:///infinity
   redis: redis://localhost:6379
