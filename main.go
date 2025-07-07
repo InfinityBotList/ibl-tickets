@@ -117,7 +117,7 @@ func main() {
 		panic(err)
 	}
 
-	discord.Client.Transport = proxy.NewHostRewriter("localhost:3219", http.DefaultTransport, func(s string) {
+	discord.Client.Transport = proxy.NewHostRewriter("172.17.0.1:3219", http.DefaultTransport, func(s string) {
 		logger.Info("[PROXY]", zap.String("note", s))
 	})
 
